@@ -1,11 +1,9 @@
 package name.giacomofurlan.hopperfilter;
 
-import net.fabricmc.api.ModInitializer;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import name.giacomofurlan.hopperfilter.component.HopperFilterComponentTypes;
+import net.fabricmc.api.ModInitializer;
 
 public class HopperFilter implements ModInitializer {
 	public static final String MOD_ID = "hopper-filter";
@@ -18,6 +16,5 @@ public class HopperFilter implements ModInitializer {
 	@Override
 	public void onInitialize() {
 		UseBlockHopperHandler.registerHandlers();
-		HopperFilterComponentTypes.registerComponentTypes();
 	}
 }
