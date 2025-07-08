@@ -2,7 +2,9 @@
 	"required": true,
 	"package": "name.giacomofurlan.hopperfilter.mixin",
 	"compatibilityLevel": "JAVA_21",
-	"mixins": [],
+	"mixins": [
+		"HopperBlockEntityMixin"
+	],
 	"injectors": {
 		"defaultRequire": 1
 	},

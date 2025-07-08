@@ -3,7 +3,6 @@ package name.giacomofurlan.hopperfilter;
 import java.util.ArrayList;
 import java.util.List;
 
-import name.giacomofurlan.hopperfilter.component.HopperFilterComponentTypes;
 import net.minecraft.block.entity.HopperBlockEntity;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.entity.player.PlayerInventory;
