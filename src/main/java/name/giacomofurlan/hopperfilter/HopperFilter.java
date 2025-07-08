@@ -17,7 +17,7 @@ public class HopperFilter implements ModInitializer {
 
 	@Override
 	public void onInitialize() {
-		UseBlockHopperHandler.register();
+		UseBlockHopperHandler.registerHandlers();
 		HopperFilterComponentTypes.registerComponentTypes();
 	}
 }

@@ -3,6 +3,7 @@ package name.giacomofurlan.hopperfilter;
 import java.util.ArrayList;
 import java.util.List;
 
+import name.giacomofurlan.hopperfilter.component.HopperFilterComponentTypes;
 import net.minecraft.block.entity.HopperBlockEntity;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.entity.player.PlayerInventory;
@@ -12,25 +13,34 @@ import net.minecraft.item.ItemStack;
 import net.minecraft.screen.ScreenHandler;
 import net.minecraft.screen.ScreenHandlerType;
 import net.minecraft.screen.slot.Slot;
+import net.minecraft.screen.slot.SlotActionType;
 
 public class HopperFilterScreenHandler extends ScreenHandler {
-    private final Inventory inventory;
+    private final Inventory filterInventory;
     private final HopperBlockEntity hopper;
 
     protected HopperFilterScreenHandler(int syncId, PlayerInventory playerInventory, HopperBlockEntity hopper) {
         super(ScreenHandlerType.GENERIC_9X3, syncId);
 
-        this.inventory = new SimpleInventory(27);
+        this.filterInventory = new SimpleInventory(27);
         this.hopper = hopper;
 
-        // Virtual slots initialization
+        // Filter slots initialization
         for (int i = 0; i < 3; ++i) {
             for (int j = 0; j < 9; ++j) {
-                this.addSlot(new Slot(inventory, j + i * 9, 8 + j * 18, 18 + i * 18));
+                this.addSlot(new Slot(filterInventory, j + i * 9, 8 + j * 18, 18 + i * 18));
+            }
+        }
+        // Filter slots filling
+        List<ItemStack> filterStacks = ((DataComponentHolder) hopper).get(HopperFilterComponentTypes.HOPPER_FILTER);
+        if (filterStacks != null) {
+            for (int i = 0; i < filterStacks.size(); i++) {
+                ItemStack stack = filterStacks.get(i);
+                filterInventory.setStack(i, stack.copy());
             }
         }
 
-        // Player slots
+        // Player slots initialization
         int m;
         for (m = 0; m < 3; ++m) {
             for (int l = 0; l < 9; ++l) {
@@ -52,16 +62,29 @@ public class HopperFilterScreenHandler extends ScreenHandler {
     @Override
     public ItemStack quickMove(PlayerEntity player, int slotIndex) {
         Slot slot = this.slots.get(slotIndex);
+        if (!slot.hasStack()) return ItemStack.EMPTY;
 
-        if (slot != null && slot.hasStack()) {
-            ItemStack originalStack = slot.getStack();
-            ItemStack singleStack = originalStack.copy();
-            singleStack.setCount(1);
+        ItemStack original = slot.getStack();
 
-            return singleStack;
+        // Add the item only once in the filter
+        if (filterInventory.count(original.getItem()) > 0) {
+            return ItemStack.EMPTY;
         }
 
-        return ItemStack.EMPTY;
+        if (slot.inventory == player.getInventory()) {
+            ItemStack ghostCopy = original.copy();
+            ghostCopy.setCount(1); // Always only one
+
+            // Add the item to the first empty slot of the filter
+            for (int i = 0; i < filterInventory.size(); i++) {
+                if (filterInventory.getStack(i).isEmpty()) {
+                    filterInventory.setStack(i, ghostCopy);
+                    break;
+                }
+            }
+        }
+
+        return ItemStack.EMPTY; // Do not transfer the real item
     }
 
     @Override
@@ -69,10 +92,9 @@ public class HopperFilterScreenHandler extends ScreenHandler {
         super.onClosed(player);
 
         if (!player.getWorld().isClient()) {
-            // Salva i contenuti dell’inventario come filtro
             List<ItemStack> filter = new ArrayList<>();
-            for (int i = 0; i < inventory.size(); i++) {
-                ItemStack stack = inventory.getStack(i);
+            for (int i = 0; i < filterInventory.size(); i++) {
+                ItemStack stack = filterInventory.getStack(i);
                 if (!stack.isEmpty()) filter.add(stack.copy());
             }
 
@@ -80,7 +102,30 @@ public class HopperFilterScreenHandler extends ScreenHandler {
         }
     }
 
-    public Inventory getInventory() {
-        return this.inventory;
+    @Override
+    public void onSlotClick(int slotIndex, int button, SlotActionType actionType, PlayerEntity player) {
+        Slot clickedSlot = slotIndex >= 0 && slotIndex < this.slots.size() ? this.slots.get(slotIndex) : null;
+
+        // Managing the filter's inventory
+        if (clickedSlot != null && clickedSlot.inventory == filterInventory) {
+            ItemStack heldStack = this.getCursorStack();
+
+            if (!heldStack.isEmpty()) {
+                ItemStack ghost = heldStack.copy();
+                ghost.setCount(1);
+                clickedSlot.setStack(ghost);
+            } else {
+                // Avoid the user to get the item (item dupe)
+                clickedSlot.setStack(ItemStack.EMPTY);
+            }
+
+            return;
+        }
+
+        super.onSlotClick(slotIndex, button, actionType, player);
+    }
+
+    public Inventory getFilterInventory() {
+        return this.filterInventory;
     }
 }
