@@ -32,12 +32,10 @@ public class HopperFilterScreenHandler extends ScreenHandler {
             }
         }
         // Filter slots filling
-        List<ItemStack> filterStacks = ((DataComponentHolder) hopper).get(HopperFilterComponentTypes.HOPPER_FILTER);
-        if (filterStacks != null) {
-            for (int i = 0; i < filterStacks.size(); i++) {
-                ItemStack stack = filterStacks.get(i);
-                filterInventory.setStack(i, stack.copy());
-            }
+        List<ItemStack> filterStacks = HopperFilterStorage.getFilter(hopper);
+        for (int i = 0; i < filterStacks.size(); i++) {
+            ItemStack stack = filterStacks.get(i);
+            filterInventory.setStack(i, stack.copy());
         }
 
         // Player slots initialization

@@ -1,25 +1,31 @@
 package name.giacomofurlan.hopperfilter;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import name.giacomofurlan.hopperfilter.component.HopperFilterComponentTypes;
 import net.minecraft.block.entity.HopperBlockEntity;
+import net.minecraft.component.ComponentMap;
 import net.minecraft.item.ItemStack;
 
 public class HopperFilterStorage {
     public static void saveFilter(HopperBlockEntity hopper, List<ItemStack> filter) {
-        DataComponentHolder dataHolder = (DataComponentHolder) hopper;
+        ComponentMap components = hopper.getComponents();
+        ComponentMap newComponents = ComponentMap.builder()
+            .addAll(components)
+            .add(HopperFilterComponentTypes.HOPPER_FILTER, filter)
+            .build();
 
-        dataHolder.set(HopperFilterComponentTypes.HOPPER_FILTER, filter);
+        hopper.setComponents(newComponents);
+        hopper.markDirty();
     }
 
     public static List<ItemStack> getFilter(HopperBlockEntity hopper) {
-        DataComponentHolder dataHolder = (DataComponentHolder) hopper;
-
-        if (dataHolder.contains(HopperFilterComponentTypes.HOPPER_FILTER)) {
-            return dataHolder.get(HopperFilterComponentTypes.HOPPER_FILTER);
+        ComponentMap components = hopper.getComponents();
+        if (components.contains(HopperFilterComponentTypes.HOPPER_FILTER)) {
+            return components.get(HopperFilterComponentTypes.HOPPER_FILTER);
         }
 
-        return null;
+        return new ArrayList<>();
     }
 }
