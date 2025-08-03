@@ -33,7 +33,7 @@ public class HopperBlockEntityMixin {
 
         List<ItemStack> filter = HopperFilterStorage.getFilter(hopperEntity);
 
-        if (filter == null || filter.isEmpty()) {
+        if (filter.isEmpty()) {
             // Vanilla behaviour
             return;
         }
@@ -51,13 +51,38 @@ public class HopperBlockEntityMixin {
 
     @Inject(method = "insert", at = @At("HEAD"), cancellable = true)
     private static void onInsert(World world, BlockPos pos, HopperBlockEntity blockEntity, CallbackInfoReturnable<Boolean> cir) {
-        // If the block below is a filtered hopper and the first non-empty stack of the inventory is in the filter list,
-        // stop the insertion
+        // if the block below is a hopper filter, and it can accept one item from the current hopper's inventory, block
+        // the insert
         BlockEntity belowBlock = world.getBlockEntity(pos.down());
         if (belowBlock instanceof HopperBlockEntity belowHopper) {
-            List<ItemStack> filter = HopperFilterStorage.getFilter(belowHopper);
-            if (filter == null || filter.isEmpty()) {
+            List<ItemStack> belowNotFullStacks = IntStream.range(0, blockEntity.size())
+                    .mapToObj(belowHopper::getStack)
+                    .filter(stack ->
+                        stack.isEmpty() || stack.getCount() < stack.getMaxCount()
+                    )
+                    .toList();
+
+            if (belowNotFullStacks.isEmpty()) {
+                // the below filter has no free spot, don't block insert
                 return;
+            }
+
+            List<ItemStack> filter;
+            if (belowNotFullStacks.stream().anyMatch(ItemStack::isEmpty)) {
+                // if the below filter has at least an empty spot, then it can accept any item from its filters
+                filter = HopperFilterStorage.getFilter(belowHopper);
+            }
+            else {
+                // otherwise, it can only accept stacks from its filters for which it has at least one non-full stack in inventory
+                filter = HopperFilterStorage.getFilter(belowHopper)
+                        .stream()
+                        .filter(filterItem -> belowNotFullStacks
+                                .stream()
+                                .anyMatch(notFullStack -> ItemStack.areItemsEqual(notFullStack, filterItem))
+                        ).toList();
+                if (filter.isEmpty()) {
+                    return;
+                }
             }
 
             Optional<ItemStack> nextStackToInsertOpt = IntStream.range(0, blockEntity.size())
@@ -65,7 +90,7 @@ public class HopperBlockEntityMixin {
                 .filter(stack -> !stack.isEmpty())
                 .findFirst();
             
-            if (!nextStackToInsertOpt.isPresent()) {
+            if (nextStackToInsertOpt.isEmpty()) {
                 return;
             }
 
